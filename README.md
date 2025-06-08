@@ -60,7 +60,8 @@ controleFinanceiro/
 ├── requirements.txt        # Dependências do projeto
 └── README.md
 
----
+```
+
 ## Sobre a Estrutura
 
     - O arquivo app.py centraliza a configuração global da aplicação, como tema visual, fontes externas e inicialização do servidor.
