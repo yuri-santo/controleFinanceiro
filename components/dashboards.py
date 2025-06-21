@@ -142,20 +142,25 @@ layout = dbc.Col(
                             persistence_type="session",
                             multi=True,)
                         ),
-                    html.Label("Período de análise"),
-                    html.Div(
-                        dcc.DatePickerRange(
-                            id="datePickerRange",
-                            start_date=date.today() - timedelta(days=30),
-                            end_date=date.today(),
-                            display_format="DD/MM/YYYY",
-                            style={'z-index':'100', "width": "100%"},
-                            persistence=True,
-                            persistence_type="session",
-                        )
-                    ),
-                ])
+                    html.Label("Período de análise", style={"margin-top": "10px"}),
+                    dcc.DatePickerRange(
+                        id="datePickerRange",
+                        start_date=date.today() - timedelta(days=30),
+                        end_date=date.today(),
+                        display_format="DD/MM/YYYY",
+                        style={'z-index':'100'}),
+                ], style={'height': "100%", 'padding': '25px'})
             ], width=4),
+
+            dbc.Col(
+                dbc.Card(dcc.Graph(id='graph1'), style={'height': '100%', 'padding': '10px'}), width=8
+            )
+        ], style={'margin':'10px'}),
+
+        dbc.Row([
+            dbc.Col(dbc.Card(dcc.Graph(id='graph2'), style={'padding': '10px'}), width=6),
+            dbc.Col(dbc.Card(dcc.Graph(id='graph3'), style={'padding': '10px'}), width=3),
+            dbc.Col(dbc.Card(dcc.Graph(id='graph4'), style={'padding': '10px'}), width=3),
         ])
     ]
 )
