@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.express as px
 
 from app import *
-from components import sidebar,dashboards,extratos,receitas,investimentos,despesas
+from components import sidebar,dashboards,extratos
 
 
 
@@ -33,12 +33,6 @@ def page(pathname):
         return dashboards.layout
     elif pathname == '/extratos':
         return extratos.layout
-    elif pathname == '/receitas':
-        return receitas.layout
-    elif pathname == '/investimentos':
-        return investimentos.layout
-    elif pathname == '/despesas':
-        return despesas.layout
     else:
         return html.Div([
             html.H1('404: Página não encontrada'),

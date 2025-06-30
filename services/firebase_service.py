@@ -18,3 +18,13 @@ def salvar_dado(colecao, dados):
 
 def obter_dados(colecao):
     return [doc.to_dict() | {"id": doc.id} for doc in db.collection(colecao).stream()]
+
+def salvar_categoria(tipo, nome):
+    return db.collection(f"categorias_{tipo}").add({"nome": nome})
+
+def obter_categorias(tipo):
+    return [doc.to_dict() | {"id": doc.id} for doc in db.collection(f"categorias_{tipo}").stream()]
+
+def deletar_categoria(tipo, doc_id):
+    db.collection(f"categorias_{tipo}").document(doc_id).delete()
+    

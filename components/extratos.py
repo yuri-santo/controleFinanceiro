@@ -8,6 +8,7 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
 
+
 from app import app
 
 # =========  Layout  =========== #
@@ -35,4 +36,3 @@ layout = dbc.Col([
 ], style={'padding': '10px'})
 
 # =========  Callbacks  =========== #
-# Tabela
