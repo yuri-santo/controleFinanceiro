@@ -23,3 +23,15 @@ TestResults.xml
 
 .env
 firebase_config.json
+
+dfCatDespesas.csv
+
+dfDespesas.csv
+
+dfCatInvestimentos.csv
+
+dfInvestimentos.csv
+
+dfCatReceitas.csv
+
+dfReceitas.csv

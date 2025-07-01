@@ -6,6 +6,7 @@ from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 from app import app
 from dash import callback_context
+import locale
 
 from services.globals import *
 from datetime import datetime, date
@@ -13,6 +14,7 @@ import plotly.express as px
 import numpy as np
 import pandas as pd
 
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 
 
@@ -233,7 +235,6 @@ layout = dbc.Col([
                                     ),
                                     dbc.Col([
                                         dbc.Input(id="qtdParcelas", placeholder="Quantas parcelas?", type="number", min=1, step=1),
-                                        dbc.Input(id="vencimentoParcelaInput", placeholder="Data da parcela", type="date", style={"width": "100%"})
                                     ])
                                     
                                 ], width=4),
@@ -333,21 +334,31 @@ def toggle_modal_despesa(n1, is_open):
     ]
 )
 def salvarReceiota(n, descricao, valor, date, switches, categoria, dictReceitas):
-
     dfReceitas = pd.DataFrame(dictReceitas)
 
-    if n and not (valor == "" or valor == None):
-        valor = round(float(valor), 2)
-        date = pd.to_datetime(date).date()
-        categoria = categoria[0] if type(categoria) == list else categoria
-        recebido = 1 if 1 in switches else 0
-        fixo = 1 if 2 in switches else 0
+    # Garante que o DataFrame tem as colunas na ordem correta
+    colunas = ['Valor', 'Recebido', 'Recorrente', 'Data', 'Categoria', 'Descrição']
+    if list(dfReceitas.columns) != colunas:
+        dfReceitas = dfReceitas.reindex(columns=colunas)
 
-        dfReceitas.loc[dfReceitas.shape[0]] = [valor, recebido, fixo, date, categoria, descricao]
-        dfReceitas.to_csv("dfReceitas.csv")
-    
-    dataReturn = dfReceitas.to_dict()
-    return dataReturn
+    if n and valor not in (None, ""):
+        try:
+            valor_float = locale.atof(valor)
+        except Exception:
+            valor_float = float(valor)
+        valor_float = round(valor_float, 2)
+
+        data_obj = pd.to_datetime(date).date()
+        categoria_val = categoria[0] if isinstance(categoria, list) else categoria
+        recebido_val = 1 if 1 in switches else 0
+        recorrente_val = 1 if 2 in switches else 0
+
+        # Adiciona a nova linha usando loc e índice numérico
+        dfReceitas.loc[dfReceitas.shape[0]] = [valor_float, recebido_val, recorrente_val, data_obj, categoria_val, descricao]
+
+        dfReceitas.to_csv("dfReceitas.csv", index=False)
+
+    return dfReceitas.to_dict()
 
 @app.callback(
     Output('storeDespesas', 'data'),
@@ -358,11 +369,11 @@ def salvarReceiota(n, descricao, valor, date, switches, categoria, dictReceitas)
         State('dataDespesa', 'date'),
         State('switchesInputDespesa', 'value'),
         State('selectDespesa', 'value'),
+        State('qtdParcelas', 'value'),
         State('storeDespesas', 'data')
     ]
 )
-def salvarDespesa(n, descricao, valor, date, switches, categoria, dictDespesa):
-
+def salvarDespesa(n, descricao, valor, date, switches, categoria, qtdParcelas, dictDespesa):
     dfDespesas = pd.DataFrame(dictDespesa)
 
     if n and not (valor == "" or valor == None):
@@ -371,12 +382,44 @@ def salvarDespesa(n, descricao, valor, date, switches, categoria, dictDespesa):
         categoria = categoria[0] if type(categoria) == list else categoria
         recebido = 1 if 1 in switches else 0
         fixo = 1 if 2 in switches else 0
-
-        dfDespesas.loc[dfDespesas.shape[0]] = [valor, recebido, fixo, date, categoria, descricao]
+        dividida = 1 if 3 in switches else 0
+        qtdParcelas = int(qtdParcelas) if dividida and qtdParcelas else 1
+        recorrente = 1 if 2 in switches else 0
+        
+        if dividida and qtdParcelas > 1:
+            valor_parcela = round(valor / qtdParcelas, 2)
+            
+            for parcela in range(1, qtdParcelas + 1):
+                descricao_parcela = f"{descricao} ({parcela}/{qtdParcelas})"
+                data_parcela = date + relativedelta(months=parcela-1)
+                
+                dfDespesas.loc[dfDespesas.shape[0]] = [
+                    valor_parcela, 
+                    recebido, 
+                    fixo, 
+                    data_parcela, 
+                    categoria, 
+                    descricao_parcela, 
+                    recorrente, 
+                    qtdParcelas, 
+                    dividida
+                ]
+        else:
+            dfDespesas.loc[dfDespesas.shape[0]] = [
+                valor, 
+                recebido, 
+                fixo, 
+                date, 
+                categoria, 
+                descricao, 
+                recorrente, 
+                1,
+                dividida
+            ]
+        
         dfDespesas.to_csv("dfDespesas.csv")
     
-    dataReturn = dfDespesas.to_dict()
-    return dataReturn
+    return dfDespesas.to_dict()
 
 
 @app.callback(
