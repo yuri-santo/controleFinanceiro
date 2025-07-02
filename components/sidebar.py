@@ -321,6 +321,7 @@ def toggle_modal_despesa(n1, is_open):
         return not is_open
     
 
+# Registra receita
 @app.callback(
     Output('storeReceitas', 'data'),
     Input('salvarReceita', 'n_clicks'),
@@ -336,7 +337,6 @@ def toggle_modal_despesa(n1, is_open):
 def salvarReceiota(n, descricao, valor, date, switches, categoria, dictReceitas):
     dfReceitas = pd.DataFrame(dictReceitas)
 
-    # Garante que o DataFrame tem as colunas na ordem correta
     colunas = ['Valor', 'Recebido', 'Recorrente', 'Data', 'Categoria', 'Descrição']
     if list(dfReceitas.columns) != colunas:
         dfReceitas = dfReceitas.reindex(columns=colunas)
@@ -353,13 +353,14 @@ def salvarReceiota(n, descricao, valor, date, switches, categoria, dictReceitas)
         recebido_val = 1 if 1 in switches else 0
         recorrente_val = 1 if 2 in switches else 0
 
-        # Adiciona a nova linha usando loc e índice numérico
         dfReceitas.loc[dfReceitas.shape[0]] = [valor_float, recebido_val, recorrente_val, data_obj, categoria_val, descricao]
 
         dfReceitas.to_csv("dfReceitas.csv", index=False)
 
     return dfReceitas.to_dict()
 
+
+# Registra despesa
 @app.callback(
     Output('storeDespesas', 'data'),
     Input('salvarDespesa', 'n_clicks'),
@@ -421,6 +422,8 @@ def salvarDespesa(n, descricao, valor, date, switches, categoria, qtdParcelas, d
     
     return dfDespesas.to_dict()
 
+
+#registra investimento
 
 @app.callback(
     Output('storeInvestimentos', 'data'),
