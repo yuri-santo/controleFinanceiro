@@ -1,78 +1,102 @@
+# services/globals.py
+from __future__ import annotations
+
 import pandas as pd
-import os
-from datetime import datetime
+from . import db as _db
 
-# Estrutura para Receitas
-if "dfReceitas.csv" in os.listdir():
-    dfReceitas = pd.read_csv("dfReceitas.csv", index_col=0, parse_dates=True)
-    dfReceitas["Data"] = pd.to_datetime(dfReceitas["Data"]).dt.date
-else:
-    receitas_structure = {
-        'Valor': [],
-        'Recebido': [],  # 1 para recebido, 0 para não recebido
-        'Recorrente': [],  # 1 para recorrente, 0 para ocasional
-        'Data': [],
-        'Categoria': [],
-        'Descrição': [],
-    }
-    dfReceitas = pd.DataFrame(receitas_structure)
-    dfReceitas.to_csv("dfReceitas.csv")
+# Garante schema (compat via wrapper)
+_db.ensure_core_schema()
 
-# Estrutura para Despesas
-if "dfDespesas.csv" in os.listdir():
-    dfDespesas = pd.read_csv("dfDespesas.csv", index_col=0, parse_dates=True)
-    dfDespesas["Data"] = pd.to_datetime(dfDespesas["Data"]).dt.date
-else:
-    despesas_structure = {
-        'Valor': [],
-        'Pago': [],  # 1 para pago, 0 para pendente
-        'Fixo': [],  # 1 para fixo, 0 para variável
-        'Data': [],
-        'Categoria': [],
-        'Descrição': [],
-        'Parcelado': [],  # 1 para parcelado, 0 para à vista
-        'QtdParcelas': [],
-        'ParcelaAtual': []  # Número da parcela atual
-    }
-    dfDespesas = pd.DataFrame(despesas_structure)
-    dfDespesas.to_csv("dfDespesas.csv")
+# ================= DFs globais =================
+dfReceitas: pd.DataFrame = pd.DataFrame()
+dfDespesas: pd.DataFrame = pd.DataFrame()
+dfInvestimentos: pd.DataFrame = pd.DataFrame()
 
-# Estrutura para Investimentos
-if "dfInvestimentos.csv" in os.listdir():
-    dfInvestimentos = pd.read_csv("dfInvestimentos.csv", index_col=0, parse_dates=True)
-    dfInvestimentos["Data"] = pd.to_datetime(dfInvestimentos["Data"]).dt.date
-else:
-    investimentos_structure = {
-        'Valor': [],
-        'Tipo': [],  # Aplicação, Resgate, Dividendos
-        'Data': [],
-        'Categoria': [],
-        'Descrição': [],
-        'Rentabilidade': [],  # % esperada de rentabilidade
-        'Vencimento': [],  # Para investimentos com prazo
-        'Liquidez': []  # Diária, D+30, etc.
-    }
-    dfInvestimentos = pd.DataFrame(investimentos_structure)
-    dfInvestimentos.to_csv("dfInvestimentos.csv")
+DEFAULT_CAT_RECEITAS = ["Salário", "Extra", "Outros"]
+DEFAULT_CAT_DESPESAS = ["Moradia", "Transporte", "Alimentação", "Lazer", "Outros"]
+DEFAULT_CAT_INVEST   = ["Renda Fixa", "Ações", "Fundos", "Cripto", "Outros"]
 
-# Categorias
-if "dfCatReceitas.csv" in os.listdir():
-    dfCatReceitas = pd.read_csv("dfCatReceitas.csv")
-    catReceitas = dfCatReceitas["Categoria"].tolist()
-else:
-    catReceitas = ["Salário", "Investimentos", "Comissão", "Freelance", "Outros"]
-    pd.DataFrame({'Categoria': catReceitas}).to_csv("dfCatReceitas.csv")
+def _load_or_seed_cat(table: str, defaults: list[str]) -> pd.DataFrame:
+    df = _db.load_table(table)
+    if df.empty or "Categoria" not in df.columns:
+        df = pd.DataFrame({"Categoria": defaults})
+        _db.replace_table(table, df)
+    return df
 
-if "dfCatDespesas.csv" in os.listdir():
-    dfCatDespesas = pd.read_csv("dfCatDespesas.csv")
-    catDespesas = dfCatDespesas["Categoria"].tolist()
-else:
-    catDespesas = ["Moradia", "Alimentação", "Transporte", "Lazer", "Saúde", "Educação", "Outros"]
-    pd.DataFrame({'Categoria': catDespesas}).to_csv("dfCatDespesas.csv")
+def load_cat_receitas() -> pd.DataFrame:      return _db.load_cat_receitas()
+def load_cat_despesas() -> pd.DataFrame:      return _db.load_cat_despesas()
+def load_cat_investimentos() -> pd.DataFrame: return _db.load_cat_investimentos()
 
-if "dfCatInvestimentos.csv" in os.listdir():
-    dfCatInvestimentos = pd.read_csv("dfCatInvestimentos.csv")
-    catInvestimentos = dfCatInvestimentos["Categoria"].tolist()
-else:
-    catInvestimentos = ["Ações", "FIIs", "Renda Fixa", "Tesouro Direto", "Criptomoedas", "Fundos"]
-    pd.DataFrame({'Categoria': catInvestimentos}).to_csv("dfCatInvestimentos.csv")
+def save_cat_receitas(df: pd.DataFrame) -> None:      _db.save_cat_receitas(df)
+def save_cat_despesas(df: pd.DataFrame) -> None:      _db.save_cat_despesas(df)
+def save_cat_investimentos(df: pd.DataFrame) -> None: _db.save_cat_investimentos(df)
+
+def fmt_brl(v) -> str:
+    try:
+        return f"R$ {float(v):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    except Exception:
+        return "R$ 0,00"
+
+def refresh_globals():
+    global dfReceitas, dfDespesas, dfInvestimentos
+    dfReceitas = _db.load_receitas()
+    dfDespesas = _db.load_despesas()
+    dfInvestimentos = _db.load_investimentos()
+
+def _boot():
+    global dfCatReceitas, dfCatDespesas, dfCatInvestimentos
+    dfCatReceitas = _load_or_seed_cat("cat_receitas", DEFAULT_CAT_RECEITAS)
+    dfCatDespesas = _load_or_seed_cat("cat_despesas", DEFAULT_CAT_DESPESAS)
+    dfCatInvestimentos = _load_or_seed_cat("cat_investimentos", DEFAULT_CAT_INVEST)
+
+    global catReceitas, catDespesas, catInvestimentos
+    catReceitas = dfCatReceitas["Categoria"].astype(str).tolist()
+    catDespesas = dfCatDespesas["Categoria"].astype(str).tolist()
+    catInvestimentos = dfCatInvestimentos["Categoria"].astype(str).tolist()
+
+    refresh_globals()
+
+_boot()
+
+# Aliases usados pelos components
+def load_receitas() -> pd.DataFrame:      return _db.load_receitas()
+def load_despesas() -> pd.DataFrame:      return _db.load_despesas()
+def load_investimentos() -> pd.DataFrame: return _db.load_investimentos()
+
+# Salva substituindo toda a tabela (mantém IDs pois é TRUNCATE lógico)
+def save_receitas(df: pd.DataFrame) -> None:      _db.save_receitas(df)
+def save_despesas(df: pd.DataFrame) -> None:      _db.save_despesas(df)
+def save_investimentos(df: pd.DataFrame) -> None: _db.save_investimentos(df)
+
+# APPEND linha a linha (usado na Sidebar)
+def append_receitas(df: pd.DataFrame) -> None:      _db.append_receitas(df)
+def append_despesas(df: pd.DataFrame) -> None:      _db.append_despesas(df)
+def append_investimentos(df: pd.DataFrame) -> None: _db.append_investimentos(df)
+
+# UPDATE/DELETE (para DataTables e Extratos)
+def update_receita_row(row_id: int, payload: dict) -> None: _db.update_receita_row(row_id, payload)
+def update_despesa_row(row_id: int, payload: dict) -> None: _db.update_despesa_row(row_id, payload)
+def update_invest_row(row_id: int, payload: dict) -> None:  _db.update_invest_row(row_id, payload)
+
+def delete_receitas(ids: list[int]) -> None:      _db.delete_receitas(ids)
+def delete_despesas(ids: list[int]) -> None:      _db.delete_despesas(ids)
+def delete_investimentos(ids: list[int]) -> None: _db.delete_investimentos(ids)
+
+def series_by_period(df: pd.DataFrame, freq: str) -> pd.DataFrame:
+    if df.empty:
+        return pd.DataFrame(columns=["Periodo", "Valor"])
+    s = df.copy()
+    s["Periodo"] = pd.to_datetime(s["Data"], errors="coerce").dt.to_period(freq).dt.to_timestamp()
+    return s.groupby("Periodo", as_index=False)["Valor"].sum()
+
+def filter_period_and_categories(df, start, end, categorias):
+    if df.empty:
+        return df
+    f = df.copy()
+    if start:
+        f = f[pd.to_datetime(f["Data"], errors="coerce") >= pd.to_datetime(start).normalize()]
+    if end:
+        f = f[pd.to_datetime(f["Data"], errors="coerce") <= pd.to_datetime(end).normalize()]
+    if categorias:
+        f = f[f["Categoria"].astype(str).isin([str(c) for c in categorias])]
+    return f

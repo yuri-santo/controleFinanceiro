@@ -21,17 +21,12 @@ rad.json
 #Test results file
 TestResults.xml
 
+_pycache_
+
 .env
 firebase_config.json
+venv
+finance.db
+finance.db-shm
+finance.db-wal
 
-dfCatDespesas.csv
-
-dfDespesas.csv
-
-dfCatInvestimentos.csv
-
-dfInvestimentos.csv
-
-dfCatReceitas.csv
-
-dfReceitas.csv
